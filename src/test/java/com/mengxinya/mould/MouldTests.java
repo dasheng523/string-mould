@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.List;
 
 public class MouldTests {
 
@@ -166,6 +167,15 @@ public class MouldTests {
                 detail.getClay().toJsonString()
         );
     }
+    @Test
+    public void testRepeat4() {
+        // 这里会出现死循环，因为zeroOrOne对于匹配不上也认为成功，如果重复次数没有上限，则死循环了。
+        String sourceStr = "A";
+        Mould comp = Mould.repeat(Mould.zeroOrOne(Mould.Digit));
+        SourceDetail detail = comp.fill(sourceStr);
+
+        Assertions.assertTrue(detail.isMatch());
+    }
 
     @Test
     public void testMaybe1() {
@@ -228,6 +238,35 @@ public class MouldTests {
         SourceDetail detail = Mould.composeAppend(Mould.zeroOrOne(Mould.Digits), Mould.EnWord).fill(sourceStr);
         Assertions.assertTrue(detail.isMatch());
         Assertions.assertEquals("8hello", detail.getClay().value(String.class));
+    }
+
+    @Test
+    public void testBackRef() {
+        String sourceStr = "aa#bb#cc";
+        Mould.MouldContext context = Mould.makeContext();
+        Mould mould = Mould.composeAppend(Mould.EnWord, context.ref(Mould.theMould("#"), "sep"), Mould.EnWord, context.backRef("sep"), Mould.EnWord);
+        SourceDetail detail = mould.fill(sourceStr);
+        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertEquals(sourceStr, detail.getClay().value(String.class));
+    }
+
+    @Test
+    public void testJoinRef1() {
+        String sourceStr = "aa#bb#cc";
+        Mould.MouldContext context = Mould.makeContext();
+        Mould mould = Mould.join(context, Mould.maybe(Mould.theMould("#"), Mould.theMould(".")), Mould.EnWord);
+        SourceDetail detail = mould.fill(sourceStr);
+        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertEquals(Arrays.asList("aa", "bb", "cc"), detail.getClay().value(List.class));
+    }
+
+    @Test
+    public void testJoinRef2() {
+        String sourceStr = "aa#bb.cc";
+        Mould.MouldContext context = Mould.makeContext();
+        Mould mould = Mould.join(context, Mould.maybe(Mould.theMould("#"), Mould.theMould(".")), Mould.EnWord);
+        SourceDetail detail = mould.fill(sourceStr);
+        Assertions.assertFalse(detail.isMatch());
     }
 
     @Test

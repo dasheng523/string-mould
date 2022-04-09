@@ -22,6 +22,29 @@ public interface Clay {
         };
     }
 
+    static Clay makeEmpty() {
+        return new Clay() {
+            @Override
+            public <T> T value(Class<T> tClass) {
+                return null;
+            }
+
+            @Override
+            public String toString() {
+                return "";
+            }
+
+            @Override
+            public String toJsonString() {
+                return "";
+            }
+        };
+    }
+
+    static boolean isEmpty(Clay clay) {
+        return clay.value(Object.class) == null;
+    }
+
     static Clay compose(List<Clay> collect) {
         return new Clay() {
             @Override
