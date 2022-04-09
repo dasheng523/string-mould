@@ -2,7 +2,6 @@ package com.mengxinya.mould;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -17,7 +16,7 @@ public interface Mould {
         if (source == null || source.equals("")) {
             return SourceDetail.notMatch();
         }
-        if (Character.isLetter(source.charAt(0))) {
+        if (Character.isLowerCase(source.charAt(0)) || Character.isUpperCase(source.charAt(0))) {
             return new SourceDetail(source.substring(1), Clay.make(source.charAt(0)));
         }
         return SourceDetail.notMatch();
@@ -40,12 +39,41 @@ public interface Mould {
     };
 
     /**
+     * 匹配单个汉字
+     */
+    Mould Han = new Mould() {
+        private boolean isChinese(char c) {
+            Character.UnicodeBlock ub = Character.UnicodeBlock.of(c);
+            return ub == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS
+                    || ub == Character.UnicodeBlock.CJK_COMPATIBILITY_IDEOGRAPHS
+                    || ub == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A
+                    || ub == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_B
+                    || ub == Character.UnicodeBlock.CJK_SYMBOLS_AND_PUNCTUATION
+                    || ub == Character.UnicodeBlock.HALFWIDTH_AND_FULLWIDTH_FORMS
+                    || ub == Character.UnicodeBlock.GENERAL_PUNCTUATION;
+        }
+        @Override
+        public SourceDetail fill(String source) {
+            if (source == null || source.equals("")) {
+                return SourceDetail.notMatch();
+            }
+            if (isChinese(source.charAt(0))) {
+                return new SourceDetail(
+                        source.substring(1),
+                        Clay.make(source.charAt(0) + "")
+                );
+            }
+            return SourceDetail.notMatch();
+        }
+    };
+
+    /**
      * 匹配多个数字
      */
-    Mould Digits = addHandler(repeat(Digit), clay -> new Clay() {
+    Mould Digits = convert(repeat(Digit), clay -> new Clay() {
         @Override
         public <T> T value(Class<T> tClass) {
-            String rs = clay.values(Integer.class).stream().map(c -> c + "").collect(Collectors.joining());
+            String rs = Clay.getValues(clay, Integer.class).stream().map(c -> c + "").collect(Collectors.joining());
             return tClass.cast(Integer.parseInt(rs));
         }
     });
@@ -53,13 +81,12 @@ public interface Mould {
     /**
      * 匹配英文单词
      */
-    Mould EnWord = addHandler(repeat(Letter), clay -> new Clay() {
-        @Override
-        public <T> T value(Class<T> tClass) {
-            String rs = clay.values(Character.class).stream().map(c -> c + "").collect(Collectors.joining());
-            return tClass.cast(rs);
-        }
-    });
+    Mould EnWord = convert(repeat(Letter), ClayConverter.joining(""));
+
+    /**
+     * 匹配多个汉字
+     */
+    Mould Hans = convert(repeat(Han), ClayConverter.joining(""));
 
     /**
      * 匹配特定字符串
@@ -91,9 +118,12 @@ public interface Mould {
         };
     }
 
-    static Mould addHandler(Mould mould, ClayConverter converter) {
+    static Mould convert(Mould mould, ClayConverter converter) {
         return source -> {
             SourceDetail detail = mould.fill(source);
+            if (!detail.isMatch()) {
+                return detail;
+            }
             return new SourceDetail(detail.getLeftSource(), converter.apply(detail.getClay()));
         };
     }
@@ -102,13 +132,13 @@ public interface Mould {
         return new Mould() {
             @Override
             public SourceDetail fill(String source) {
-                List<Mould> mouldList = Arrays.asList(moulds);
-                LinkedList<SourceDetail> result = new LinkedList<>();
+                List<Mould> mouldList = new ArrayList<>(Arrays.asList(moulds));
+                List<SourceDetail> result = new ArrayList<>();
 
                 boolean rs = loopFill(mouldList, result, source);
                 if (rs) {
                     return new SourceDetail(
-                            result.getLast().getLeftSource(),
+                            result.get(result.size() - 1).getLeftSource(),
                             Clay.compose(result.stream().map(SourceDetail::getClay).collect(Collectors.toList())));
                 }
                 else {
@@ -130,6 +160,11 @@ public interface Mould {
             }
         };
     }
+
+    static Mould composeAppend(Mould... moulds) {
+        return convert(compose(moulds), ClayConverter.joining(""));
+    }
+
     static Mould join(Mould separator, Mould item) {
         return source -> {
             SourceDetail itemRs = item.fill(source);
@@ -140,9 +175,14 @@ public interface Mould {
             Mould repeatMould = repeat(compose(separator, item));
             SourceDetail repeatRs = repeatMould.fill(itemRs.getLeftSource());
             if (repeatRs.isMatch()) {
-                List<Clay> clayList = new LinkedList<>();
+                List<Clay> clayList = new ArrayList<>();
                 clayList.add(itemRs.getClay());
-                clayList.addAll(Clay.deconstruct(repeatRs.getClay(), clayItem -> Clay.deconstruct(clayItem, 1)));
+                clayList.addAll(
+                        Clay.deconstruct(
+                                repeatRs.getClay(),
+                                clayItem -> Clay.deconstruct(clayItem, 1)
+                        )
+                );
                 return new SourceDetail(
                         repeatRs.getLeftSource(),
                         Clay.compose(clayList)
@@ -158,13 +198,17 @@ public interface Mould {
         return new Mould() {
             @Override
             public SourceDetail fill(String source) {
-                int count = 0;
-                LinkedList<SourceDetail> result = new LinkedList<>();
-                boolean rs = loopFill(source, count, result);
+                List<SourceDetail> result = new ArrayList<>();
+                boolean rs = loopFill(source, 0, result);
                 if (rs) {
-                    return new SourceDetail(
-                            result.getLast().getLeftSource(),
-                            Clay.compose(result.stream().map(SourceDetail::getClay).collect(Collectors.toList())));
+                    if (result.size() > 0) {
+                        return new SourceDetail(
+                                result.get(result.size() - 1).getLeftSource(),
+                                Clay.compose(result.stream().map(SourceDetail::getClay).collect(Collectors.toList())));
+                    }
+                    else {
+                        return new SourceDetail(source, Clay.make(new ArrayList<>()));
+                    }
                 }
                 else {
                     return SourceDetail.notMatch();
@@ -186,6 +230,7 @@ public interface Mould {
             }
         };
     }
+
     static Mould repeat(Mould item, int min) {
         return repeat(item, min, 0);
     }
@@ -193,7 +238,24 @@ public interface Mould {
         return repeat(item, 1);
     }
 
+    static Mould zeroOrOne(Mould item) {
+        return convert(repeat(item, 0, 1), clay -> {
+            if (clay.value(List.class).size() == 0) {
+                return Clay.make("");
+            }
+            return Clay.deconstruct(clay, 0);
+        });
+    }
+
     static Mould maybe(Mould... moulds) {
-        return null;
+        return source -> {
+            for (Mould item : moulds) {
+                SourceDetail detail = item.fill(source);
+                if (detail.isMatch()) {
+                    return detail;
+                }
+            }
+            return SourceDetail.notMatch();
+        };
     }
 }
