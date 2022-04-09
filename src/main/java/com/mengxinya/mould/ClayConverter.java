@@ -1,5 +1,6 @@
 package com.mengxinya.mould;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,5 +20,21 @@ public interface ClayConverter {
                             .collect(Collectors.joining(sep))
             );
         };
+    }
+
+    ClayConverter Cons = clay -> {
+        List<Clay> clayList = Clay.deconstruct(clay);
+        if (clayList.size() == 0) {
+            return Clay.makeEmpty();
+        }
+        List<Object> list = new ArrayList<>();
+        list.add(clayList.get(0).value(Object.class));
+        list.addAll(clayList.get(1).value(List.class));
+
+        return Clay.make(list);
+    };
+
+    static ClayConverter deconstruct(int index) {
+        return clay -> Clay.deconstruct(clay, index);
     }
 }

@@ -1,6 +1,7 @@
 package com.mengxinya.mould;
 
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public interface Mould {
@@ -41,14 +42,8 @@ public interface Mould {
      */
     Mould Han = new Mould() {
         private boolean isChinese(char c) {
-            Character.UnicodeBlock ub = Character.UnicodeBlock.of(c);
-            return ub == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS
-                    || ub == Character.UnicodeBlock.CJK_COMPATIBILITY_IDEOGRAPHS
-                    || ub == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A
-                    || ub == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_B
-                    || ub == Character.UnicodeBlock.CJK_SYMBOLS_AND_PUNCTUATION
-                    || ub == Character.UnicodeBlock.HALFWIDTH_AND_FULLWIDTH_FORMS
-                    || ub == Character.UnicodeBlock.GENERAL_PUNCTUATION;
+            Pattern pattern = Pattern.compile("[\\u4E00-\\u9FBF]+");
+            return pattern.matcher(c+"").find();
         }
         @Override
         public SourceDetail fill(String source) {
@@ -119,7 +114,7 @@ public interface Mould {
     static Mould convert(Mould mould, ClayConverter converter) {
         return source -> {
             SourceDetail detail = mould.fill(source);
-            if (!detail.isMatch()) {
+            if (!detail.isMatch() || detail.isSkip()) {
                 return detail;
             }
             return new SourceDetail(detail.getLeftSource(), converter.apply(detail.getClay()));
@@ -153,14 +148,20 @@ public interface Mould {
                 if (!detail.isMatch()) {
                     return false;
                 }
-                result.add(detail);
+                if (!detail.isSkip()) {
+                    result.add(detail);
+                }
                 return loopFill(mouldList, result, detail.getLeftSource());
             }
         };
     }
 
-    static Mould composeAppend(Mould... moulds) {
+    static Mould composeJoining(Mould... moulds) {
         return convert(compose(moulds), ClayConverter.joining(""));
+    }
+
+    static Mould cons(Mould car, Mould cdr) {
+        return convert(compose(car, cdr), ClayConverter.Cons);
     }
 
     static Mould join(Mould separator, Mould item) {
@@ -168,6 +169,9 @@ public interface Mould {
             SourceDetail itemRs = item.fill(source);
             if (!itemRs.isMatch()) {
                 return SourceDetail.notMatch();
+            }
+            if (itemRs.isSkip()) {
+                return itemRs;
             }
 
             Mould repeatMould = repeat(compose(separator, item));
@@ -187,51 +191,44 @@ public interface Mould {
                 );
             }
             else {
-                return itemRs;
+                return new SourceDetail(itemRs.getLeftSource(), Clay.makeListOf(itemRs.getClay()));
             }
         };
     }
 
 
-//    static Mould join(MouldContext context, Mould separator, Mould item) {
-//        return source -> {
-//            String key = "separator";
-//
-//            SourceDetail itemRs = item.fill(source);
-//            if (!itemRs.isMatch()) {
-//                return SourceDetail.notMatch();
-//            }
-//
-//            Mould refSep = context.ref(separator, key);
-//            Mould backSep = context.backRef(key);
-//            Mould repeatMould = compose(
-//                    convert(compose(refSep, item), clay -> Clay.deconstruct(clay, 1)),
-//                    repeat(convert(compose(backSep, item), clay -> Clay.deconstruct(clay, 1)), 0)
-//                    // 可能是没有的，但又要被认为是已匹配。换句话说存在一种SourceDetail，它的isMatch是true，但需要忽略它后续的操作。
-//                    // 应该说存在一种Clay，它支持任意的Clay操作，但是实际不发生任何作用。
-//            );
-//
-//            Mould repeatMould = repeat(compose(backRef(key), item));
-//            SourceDetail repeatRs = repeatMould.fill(itemRs.getLeftSource());
-//            if (repeatRs.isMatch()) {
-//                List<Clay> clayList = new ArrayList<>();
-//                clayList.add(itemRs.getClay());
-//                clayList.addAll(
-//                        Clay.deconstruct(
-//                                repeatRs.getClay(),
-//                                clayItem -> Clay.deconstruct(clayItem, 1)
-//                        )
-//                );
-//                return new SourceDetail(
-//                        repeatRs.getLeftSource(),
-//                        Clay.compose(clayList)
-//                );
-//            }
-//            else {
-//                return itemRs;
-//            }
-//        };
-//    }
+    static Mould join(MouldContext context, Mould separator, Mould item) {
+        return source -> {
+            String key = System.currentTimeMillis() + "";
+
+            Mould refSep = context.ref(separator, key);
+            Mould backSep = context.backRef(key);
+            Mould repeatMould = cons(
+                    convert(compose(refSep, item), ClayConverter.deconstruct(1)),
+                    repeat(convert(compose(backSep, item), ClayConverter.deconstruct(1)), 0)
+            );
+
+            SourceDetail itemDetail = item.fill(source);
+            if (!itemDetail.isMatch()) {
+                return SourceDetail.notMatch();
+            }
+
+            SourceDetail repeatDetail = repeatMould.fill(itemDetail.getLeftSource());
+            if (!repeatDetail.isMatch()) {
+                return new SourceDetail(itemDetail.getLeftSource(), Clay.makeListOf(itemDetail.getClay()));
+            }
+
+            Mould composeMould = cons(item, zeroOrOne(repeatMould));
+
+            SourceDetail repeatRs = composeMould.fill(source);
+            if (repeatRs.isMatch()) {
+                return repeatRs;
+            }
+            else {
+                return SourceDetail.notMatch();
+            }
+        };
+    }
 
     static Mould repeat(Mould item, int min, int max) {
         return new Mould() {
@@ -259,9 +256,9 @@ public interface Mould {
                     return true;
                 }
                 SourceDetail detail = item.fill(source);
-//                if (detail.isSkip()) {
-//                    return true;
-//                }
+                if (detail.isSkip()) {
+                    return true;
+                }
                 if (!detail.isMatch()) {
                     return count >= min;
                 }
@@ -281,13 +278,13 @@ public interface Mould {
     }
 
     static Mould zeroOrOne(Mould item) {
-        return convert(repeat(item, 0, 1), clay -> {
-            // 如果能匹配则匹配，不能匹配则跳过，而不是返回这个Clay。
-            if (clay.value(List.class).size() == 0) {
-                return Clay.makeEmpty();
+        return source -> {
+            SourceDetail detail = item.fill(source);
+            if (detail.isMatch()) {
+                return detail;
             }
-            return Clay.deconstruct(clay, 0);
-        });
+            return SourceDetail.skip(source);
+        };
     }
 
     static Mould maybe(Mould... moulds) {
@@ -316,6 +313,9 @@ public interface Mould {
                 if (!detail.isMatch()) {
                     return SourceDetail.notMatch();
                 }
+                if (detail.isSkip()) {
+                    return detail;
+                }
                 String readStr = source.substring(0, source.length() - detail.getLeftSource().length());
                 context.put(key, readStr);
                 mouldMap.put(key, mould);
@@ -324,16 +324,16 @@ public interface Mould {
         }
 
         public Mould backRef(String key) {
-            String readStr = context.get(key);
-            Mould mould = mouldMap.get(key);
-            if (mould == null || readStr == null) {
-                throw new ClayException("key不存在");
-            }
             return source -> {
+                String readStr = context.get(key);
+                Mould mould = mouldMap.get(key);
+                if (mould == null || readStr == null) {
+                    throw new ClayException("key不存在");
+                }
                 if (!source.startsWith(readStr)) {
                     return SourceDetail.notMatch();
                 }
-                return mould.fill(readStr);
+                return mould.fill(source);
             };
         }
     }

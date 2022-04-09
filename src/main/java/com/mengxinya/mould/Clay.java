@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 public interface Clay {
 
+
     <T> T value(Class<T> tClass);
 
     default String toJsonString() {
@@ -84,5 +85,10 @@ public interface Clay {
             throw new ClayException("index 越界");
         }
         return clayList.get(index);
+    }
+
+
+    static Clay makeListOf(Clay clay) {
+        return Clay.make(List.of(clay.value(Object.class)));
     }
 }
