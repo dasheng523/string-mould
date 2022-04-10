@@ -111,6 +111,15 @@ public interface Mould {
         };
     }
 
+    Mould EOF = source -> {
+        if (source.equals("")) {
+            return new SourceDetail("", Clay.make(""));
+        }
+        else {
+            return SourceDetail.notMatch();
+        }
+    };
+
     static Mould convert(Mould mould, ClayConverter converter) {
         return source -> {
             SourceDetail detail = mould.fill(source);
@@ -296,6 +305,13 @@ public interface Mould {
                 }
             }
             return SourceDetail.notMatch();
+        };
+    }
+
+    static <T extends MouldCallback> Mould interweave(T listMould, Mould adorn) {
+        return source -> {
+            listMould.addFailCallback(adorn);
+            return listMould.fill(source);
         };
     }
 

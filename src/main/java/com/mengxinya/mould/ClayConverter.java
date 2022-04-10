@@ -2,6 +2,7 @@ package com.mengxinya.mould;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public interface ClayConverter {
@@ -36,5 +37,15 @@ public interface ClayConverter {
 
     static ClayConverter deconstruct(int index) {
         return clay -> Clay.deconstruct(clay, index);
+    }
+
+    static ClayConverter compose(ClayConverter... converters) {
+        return clay -> {
+            Clay result = clay;
+            for (ClayConverter converter : converters) {
+                result = converter.apply(result);
+            }
+            return result;
+        };
     }
 }
