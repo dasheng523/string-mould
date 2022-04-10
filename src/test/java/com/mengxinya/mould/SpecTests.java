@@ -4,35 +4,48 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class SpecTests {
+    static String joinKey = "join";
+    static Mould.MouldContext context = Mould.makeContext();
+    public static Mould main = Mould.join(
+            context,
+            joinKey,
+            Mould.composeJoining(
+                    Mould.repeat(Mould.theMould(" "), 0),
+                    Mould.maybe(
+                            Mould.theMould("、"),
+                            Mould.maybe(Mould.theMould("，"), Mould.theMould(",")),
+                            Mould.maybe(Mould.theMould("；"), Mould.theMould(";"))
+                    ),
+                    Mould.repeat(Mould.theMould(" "), 0)
+            ),
+            Mould.convert(
+                    Mould.repeat(Mould.maybe(
+                            Mould.Letter,
+                            Mould.Digit,
+                            Mould.Han,
+                            Mould.theMould("㎜"), Mould.theMould("*"),
+                            Mould.theMould("-"), Mould.theMould("+"), Mould.theMould("."), Mould.theMould(" "),
+                            Mould.theMould("φ"), Mould.theMould("#"), Mould.theMould("×"), Mould.theMould("/"),
+                            Mould.theMould("("), Mould.theMould(")"),
+                            Mould.theMould("（"), Mould.theMould("）")
+                    )),
+                    ClayConverter.joining("")
+            )
+    );
 
     private SourceDetail superMould(String source) {
-        Mould.MouldContext context = Mould.makeContext();
-        Mould main = Mould.join(
-                context,
-                Mould.composeJoining(
-                        Mould.repeat(Mould.theMould(" "), 0),
-                        Mould.maybe(
-                                Mould.theMould("、"),
-                                Mould.theMould("，"), Mould.theMould(","),
-                                Mould.theMould("；"), Mould.theMould(";")
-                        ),
-                        Mould.repeat(Mould.theMould(" "), 0)
-                ),
-                Mould.convert(
-                        Mould.repeat(Mould.maybe(
-                                Mould.Letter,
-                                Mould.Digit,
-                                Mould.Han,
-                                Mould.theMould("-"), Mould.theMould("+"), Mould.theMould("."), Mould.theMould(" "),
-                                Mould.theMould("φ"), Mould.theMould("#"), Mould.theMould("×"), Mould.theMould("/"),
-                                Mould.theMould("("), Mould.theMould(")"),
-                                Mould.theMould("（"), Mould.theMould("）")
-                        )),
-                        ClayConverter.joining("")
-                )
-        );
+
+        source = source.replaceAll(",", "，").replaceAll(";", "；");
+
+
         Mould mould = Mould.convert(
-                Mould.compose(main, Mould.zeroOrOne(Mould.theMould("。")), Mould.EOF),
+                Mould.compose(
+                        main,
+                        Mould.zeroOrOne(Mould.maybe(
+                                Mould.theMould("。"),
+                                context.backRef(joinKey)
+                        )),
+                        Mould.EOF),
                 ClayConverter.deconstruct(0)
         );
         SourceDetail detail = mould.fill(source);
@@ -116,4 +129,44 @@ public class SpecTests {
         Assertions.assertTrue(Clay.deconstruct(detail.getClay()).size() > 5);
         Assertions.assertEquals("HWGDJ-I-25", Clay.deconstruct(detail.getClay()).get(0).value(String.class));
     }
+
+    @Test
+    public void testInput10() {
+        String sourceStr = "直无钩140㎜、160㎜、180㎜、200㎜、220㎜。";
+        SourceDetail detail = superMould(sourceStr);
+        Assertions.assertTrue(detail.isFinish());
+        Assertions.assertTrue(Clay.deconstruct(detail.getClay()).size() > 3);
+        Assertions.assertEquals("直无钩140㎜", Clay.deconstruct(detail.getClay()).get(0).value(String.class));
+    }
+
+    @Test
+    public void testInput11() {
+        String sourceStr = "YT-150,YT-200,YT-300,YT-400,YT-500,YT-600,YT-700,YT-800,YT-1000，YT-900";
+        SourceDetail detail = superMould(sourceStr);
+        Assertions.assertTrue(detail.isFinish());
+        Assertions.assertTrue(Clay.deconstruct(detail.getClay()).size() > 3);
+        Assertions.assertEquals("YT-150", Clay.deconstruct(detail.getClay()).get(0).value(String.class));
+    }
+
+    @Test
+    public void testInput12() {
+        String sourceStr = "YT-150,YT-200,YT-300,YT-400,YT-500,YT-600,YT-700,YT-800,YT-1000，YT-900,";
+        SourceDetail detail = superMould(sourceStr);
+        Assertions.assertTrue(detail.isFinish());
+        Assertions.assertTrue(Clay.deconstruct(detail.getClay()).size() > 3);
+        Assertions.assertEquals("YT-150", Clay.deconstruct(detail.getClay()).get(0).value(String.class));
+    }
+
+    @Test
+    public void testInput13() {
+        String sourceStr = "TN100/XN100/8*10in、10*12in、11*14in、14*17in、203*254mm、254*305mm、279*356mm、356*432mm、356*43m。";
+        SourceDetail detail = superMould(sourceStr);
+        Assertions.assertTrue(detail.isFinish());
+        Assertions.assertTrue(Clay.deconstruct(detail.getClay()).size() > 3);
+        Assertions.assertEquals("TN100/XN100/8*10in", Clay.deconstruct(detail.getClay()).get(0).value(String.class));
+    }
+
+
 }
+
+

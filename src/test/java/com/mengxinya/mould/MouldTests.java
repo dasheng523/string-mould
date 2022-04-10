@@ -260,7 +260,7 @@ public class MouldTests {
     public void testJoinRef1() {
         String sourceStr = "aa#bb#cc";
         Mould.MouldContext context = Mould.makeContext();
-        Mould mould = Mould.join(context, Mould.maybe(Mould.theMould("#"), Mould.theMould(".")), Mould.EnWord);
+        Mould mould = Mould.join(context, "key", Mould.maybe(Mould.theMould("#"), Mould.theMould(".")), Mould.EnWord);
         SourceDetail detail = mould.fill(sourceStr);
         Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(Arrays.asList("aa", "bb", "cc"), detail.getClay().value(List.class));
@@ -270,7 +270,7 @@ public class MouldTests {
     public void testJoinRef2() {
         String sourceStr = "aa#bb.cc";
         Mould.MouldContext context = Mould.makeContext();
-        Mould mould = Mould.join(context, Mould.maybe(Mould.theMould("#"), Mould.theMould(".")), Mould.EnWord);
+        Mould mould = Mould.join(context, "key", Mould.maybe(Mould.theMould("#"), Mould.theMould(".")), Mould.EnWord);
         SourceDetail detail = mould.fill(sourceStr);
         Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(Arrays.asList("aa", "bb"), detail.getClay().value(List.class));

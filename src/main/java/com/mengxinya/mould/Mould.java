@@ -205,11 +205,15 @@ public interface Mould {
         };
     }
 
-
-    static Mould join(MouldContext context, Mould separator, Mould item) {
+    /**
+     * 解析过程中，separator必须完全一样
+     * @param context context
+     * @param separator separator
+     * @param item item
+     * @return Mould
+     */
+    static Mould join(MouldContext context, String key, Mould separator, Mould item) {
         return source -> {
-            String key = System.currentTimeMillis() + "";
-
             Mould refSep = context.ref(separator, key);
             Mould backSep = context.backRef(key);
             Mould repeatMould = cons(
@@ -313,6 +317,19 @@ public interface Mould {
         };
     }
 
+    static Mould not(Mould mould) {
+        return source -> {
+            SourceDetail detail = mould.fill(source);
+            if (detail.isFinish()) {
+                return SourceDetail.notMatch(source);
+            }
+            else {
+                return new SourceDetail(source.substring(1), Clay.make(source.substring(0, 1)));
+            }
+        };
+    }
+
+    // TODO 这个函数还有很多问题
     static Mould interweave(MouldList item, Mould adorn) {
         return new Mould() {
             @Override
@@ -371,7 +388,7 @@ public interface Mould {
                 String readStr = context.get(key);
                 Mould mould = mouldMap.get(key);
                 if (mould == null || readStr == null) {
-                    throw new ClayException("key不存在");
+                    return SourceDetail.skip(source);
                 }
                 if (!source.startsWith(readStr)) {
                     return SourceDetail.notMatch(source);
