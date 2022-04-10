@@ -14,7 +14,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.8.2</junit.version>
         <lombok.version>1.18.22</lombok.version>
-        <fastjson.version>1.2.76</fastjson.version>
+        <fastjson.version>1.2.80</fastjson.version>
     </properties>
 
     <dependencies>
@@ -27,6 +27,11 @@
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
             <version>${fastjson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.hankcs</groupId>
+            <artifactId>hanlp</artifactId>
+            <version>portable-1.7.6</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

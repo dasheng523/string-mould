@@ -205,6 +205,27 @@ public interface Mould {
         };
     }
 
+    static Mould join(Mould separator, List<Mould> maybeItems) {
+        return new Mould() {
+            private Mould findMould(String source) {
+                for (Mould mould : maybeItems) {
+                    if (mould.fill(source).isFinish()) {
+                        return mould;
+                    }
+                }
+                return null;
+            }
+            @Override
+            public SourceDetail fill(String source) {
+                Mould item = findMould(source);
+                if (item == null) {
+                    return SourceDetail.notMatch(source);
+                }
+                return join(separator, item).fill(source);
+            }
+        };
+    }
+
     /**
      * 解析过程中，separator必须完全一样
      * @param context context
@@ -320,7 +341,7 @@ public interface Mould {
     static Mould not(Mould mould) {
         return source -> {
             SourceDetail detail = mould.fill(source);
-            if (detail.isFinish()) {
+            if (detail.isFinish() || source.length() == 0) {
                 return SourceDetail.notMatch(source);
             }
             else {

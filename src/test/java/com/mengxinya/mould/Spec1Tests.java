@@ -3,7 +3,7 @@ package com.mengxinya.mould;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class SpecTests {
+public class Spec1Tests {
     static String joinKey = "join";
     static Mould.MouldContext context = Mould.makeContext();
     public static Mould main = Mould.join(
@@ -23,7 +23,7 @@ public class SpecTests {
                             Mould.Letter,
                             Mould.Digit,
                             Mould.Han,
-                            Mould.theMould("㎜"), Mould.theMould("*"),
+                            Mould.theMould("㎜"), Mould.theMould("*"), Mould.theMould("∮"), Mould.theMould("±"),
                             Mould.theMould("-"), Mould.theMould("+"), Mould.theMould("."), Mould.theMould(" "),
                             Mould.theMould("φ"), Mould.theMould("#"), Mould.theMould("×"), Mould.theMould("/"),
                             Mould.theMould("("), Mould.theMould(")"),
@@ -34,9 +34,7 @@ public class SpecTests {
     );
 
     private SourceDetail superMould(String source) {
-
         source = source.replaceAll(",", "，").replaceAll(";", "；");
-
 
         Mould mould = Mould.convert(
                 Mould.compose(
