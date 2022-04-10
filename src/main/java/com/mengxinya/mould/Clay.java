@@ -87,8 +87,4 @@ public interface Clay {
         return clayList.get(index);
     }
 
-
-    static Clay makeListOf(Clay clay) {
-        return Clay.make(List.of(clay.value(Object.class)));
-    }
 }

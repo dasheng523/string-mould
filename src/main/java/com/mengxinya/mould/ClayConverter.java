@@ -48,4 +48,29 @@ public interface ClayConverter {
             return result;
         };
     }
+
+    ClayConverter Append = clay -> {
+        List<Clay> clayList = Clay.deconstruct(clay);
+
+        List<Object> result = Clay.getValues(clayList.remove(0), Object.class);
+
+        for (Clay item : clayList) {
+            List<Object> itemObjList = Clay.getValues(item, Object.class);
+            result.addAll(itemObjList);
+        }
+
+        return Clay.make(result);
+    };
+
+    static Clay appendClay(Clay clay, Clay... clays) {
+        List<Object> result = Clay.getValues(clay, Object.class);
+        for (Clay item : clays) {
+            List<Object> itemObjList = Clay.getValues(item, Object.class);
+            result.addAll(itemObjList);
+        }
+        return Clay.make(result);
+    }
+
+    ClayConverter MakeListOf = clay -> Clay.make(List.of(clay.value(Object.class)));
+
 }

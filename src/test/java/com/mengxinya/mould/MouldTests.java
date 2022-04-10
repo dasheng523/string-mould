@@ -13,7 +13,7 @@ public class MouldTests {
     public void testLetter1() {
         String sourceStr = "YCLED720/720";
         SourceDetail detail = Mould.Letter.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals('Y', detail.getClay().value(Character.class));
     }
 
@@ -21,14 +21,14 @@ public class MouldTests {
     public void testLetter2() {
         String sourceStr = "720";
         SourceDetail detail = Mould.Letter.fill(sourceStr);
-        Assertions.assertFalse(detail.isMatch());
+        Assertions.assertFalse(detail.isFinish());
     }
 
     @Test
     public void testNumber1() {
         String sourceStr = "720";
         SourceDetail detail = Mould.Digit.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(7, detail.getClay().value(Integer.class));
     }
 
@@ -36,14 +36,14 @@ public class MouldTests {
     public void testNumber2() {
         String sourceStr = "A1C";
         SourceDetail detail = Mould.Digit.fill(sourceStr);
-        Assertions.assertFalse(detail.isMatch());
+        Assertions.assertFalse(detail.isFinish());
     }
 
     @Test
     public void testNumber3() {
         String sourceStr = "720";
         SourceDetail detail = Mould.Digits.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(720, detail.getClay().value(Integer.class));
     }
 
@@ -51,7 +51,7 @@ public class MouldTests {
     public void testEnWord1() {
         String sourceStr = "ABC";
         SourceDetail detail = Mould.EnWord.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals("ABC", detail.getClay().value(String.class));
     }
 
@@ -59,13 +59,13 @@ public class MouldTests {
     public void testEnWord2() {
         String sourceStr = "1AC";
         SourceDetail detail = Mould.EnWord.fill(sourceStr);
-        Assertions.assertFalse(detail.isMatch());
+        Assertions.assertFalse(detail.isFinish());
     }
     @Test
     public void testEnWord3() {
         String sourceStr = "A1C";
         SourceDetail detail = Mould.EnWord.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals("A", detail.getClay().value(String.class));
     }
 
@@ -74,7 +74,7 @@ public class MouldTests {
         String sourceStr = "A1C";
         Mould comp = Mould.compose(Mould.Letter, Mould.Digit, Mould.Letter);
         SourceDetail detail = comp.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals("[\"A\",1,\"C\"]", detail.getClay().toJsonString());
     }
 
@@ -84,7 +84,7 @@ public class MouldTests {
         String sourceStr = "Pink720END";
         Mould comp = Mould.convert(Mould.compose(Mould.EnWord, Mould.Digits), ClayConverter.joining(""));
         SourceDetail detail = comp.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(JSON.toJSONString("Pink720"), detail.getClay().toJsonString());
     }
 
@@ -94,7 +94,7 @@ public class MouldTests {
         String sourceStr = "A1C";
         Mould comp = Mould.theMould("A1C");
         SourceDetail detail = comp.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(JSON.toJSONString("A1C"), detail.getClay().toJsonString());
     }
 
@@ -103,7 +103,7 @@ public class MouldTests {
         String sourceStr = "123";
         Mould comp = Mould.theMould(123);
         SourceDetail detail = comp.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(JSON.toJSONString(123), detail.getClay().toJsonString());
     }
 
@@ -112,7 +112,7 @@ public class MouldTests {
         String sourceStr = "1,2,3,4";
         Mould comp = Mould.join(Mould.theMould(","), Mould.Digit);
         SourceDetail detail = comp.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(
                 JSON.toJSONString(Arrays.asList(1, 2, 3, 4)),
                 detail.getClay().toJsonString()
@@ -124,7 +124,7 @@ public class MouldTests {
         String sourceStr = "/1,2,3,4";
         Mould comp = Mould.join(Mould.theMould(","), Mould.Digit);
         SourceDetail detail = comp.fill(sourceStr);
-        Assertions.assertFalse(detail.isMatch());
+        Assertions.assertFalse(detail.isFinish());
     }
 
     @Test
@@ -132,14 +132,14 @@ public class MouldTests {
         String sourceStr = "1";
         Mould comp = Mould.join(Mould.theMould(","), Mould.Digit);
         SourceDetail detail = comp.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
     }
 
     @Test
     public void testRepeat1() {
         String sourceStr = "Pink720";
         SourceDetail detail = Mould.repeat(Mould.Letter, 1).fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(JSON.toJSONString(Arrays.asList("P", "i", "n", "k")), detail.getClay().toJsonString());
     }
 
@@ -148,7 +148,7 @@ public class MouldTests {
         String sourceStr = "Pink720Red800Green600Yellow500END";
         Mould comp = Mould.convert(Mould.compose(Mould.EnWord, Mould.Digits), ClayConverter.joining(""));
         SourceDetail detail = Mould.repeat(comp, 1).fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(
                 JSON.toJSONString(Arrays.asList("Pink720", "Red800", "Green600", "Yellow500")),
                 detail.getClay().toJsonString()
@@ -161,7 +161,7 @@ public class MouldTests {
         Mould comp = Mould.convert(Mould.compose(Mould.EnWord, Mould.Digits), ClayConverter.joining(""));
         SourceDetail detail = Mould.repeat(comp, 1).fill(sourceStr);
 
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(
                 JSON.toJSONString(Arrays.asList("Pink720", "Red800", "Green600", "Yellow500")),
                 detail.getClay().toJsonString()
@@ -174,7 +174,7 @@ public class MouldTests {
         Mould comp = Mould.repeat(Mould.zeroOrOne(Mould.Digit));
         SourceDetail detail = comp.fill(sourceStr);
 
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
     }
 
     @Test
@@ -182,7 +182,7 @@ public class MouldTests {
         String sourceStr = "A";
         Mould comp = Mould.maybe(Mould.Letter, Mould.Digit);
         SourceDetail detail = comp.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
     }
 
     @Test
@@ -190,7 +190,7 @@ public class MouldTests {
         String sourceStr = "1";
         Mould comp = Mould.maybe(Mould.Letter, Mould.Digit);
         SourceDetail detail = comp.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
     }
 
     @Test
@@ -198,14 +198,14 @@ public class MouldTests {
         String sourceStr = "好";
         Mould comp = Mould.maybe(Mould.Letter, Mould.Digit);
         SourceDetail detail = comp.fill(sourceStr);
-        Assertions.assertFalse(detail.isMatch());
+        Assertions.assertFalse(detail.isFinish());
     }
 
     @Test
     public void testHan1() {
         String sourceStr = "好";
         SourceDetail detail = Mould.Han.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals("好", detail.getClay().value(String.class));
     }
 
@@ -213,14 +213,14 @@ public class MouldTests {
     public void testHan2() {
         String sourceStr = "A";
         SourceDetail detail = Mould.Han.fill(sourceStr);
-        Assertions.assertFalse(detail.isMatch());
+        Assertions.assertFalse(detail.isFinish());
     }
 
     @Test
     public void testHan3() {
         String sourceStr = "你好hello";
         SourceDetail detail = Mould.Hans.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals("你好", detail.getClay().value(String.class));
     }
 
@@ -228,7 +228,7 @@ public class MouldTests {
     public void testZeroOrOne1() {
         String sourceStr = "hello";
         SourceDetail detail = Mould.composeJoining(Mould.zeroOrOne(Mould.Digits), Mould.EnWord).fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals("hello", detail.getClay().value(String.class));
     }
 
@@ -236,7 +236,7 @@ public class MouldTests {
     public void testZeroOrOne2() {
         String sourceStr = "8hello";
         SourceDetail detail = Mould.composeJoining(Mould.zeroOrOne(Mould.Digits), Mould.EnWord).fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals("8hello", detail.getClay().value(String.class));
     }
 
@@ -252,7 +252,7 @@ public class MouldTests {
                 Mould.EnWord
         );
         SourceDetail detail = mould.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(sourceStr, detail.getClay().value(String.class));
     }
 
@@ -262,7 +262,7 @@ public class MouldTests {
         Mould.MouldContext context = Mould.makeContext();
         Mould mould = Mould.join(context, Mould.maybe(Mould.theMould("#"), Mould.theMould(".")), Mould.EnWord);
         SourceDetail detail = mould.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(Arrays.asList("aa", "bb", "cc"), detail.getClay().value(List.class));
     }
 
@@ -272,7 +272,7 @@ public class MouldTests {
         Mould.MouldContext context = Mould.makeContext();
         Mould mould = Mould.join(context, Mould.maybe(Mould.theMould("#"), Mould.theMould(".")), Mould.EnWord);
         SourceDetail detail = mould.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(Arrays.asList("aa", "bb"), detail.getClay().value(List.class));
     }
 
@@ -289,7 +289,7 @@ public class MouldTests {
                 )
         );
         SourceDetail detail = mould.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(Arrays.asList("aa", "bb", "cc"), detail.getClay().value(List.class));
     }
 
@@ -303,7 +303,7 @@ public class MouldTests {
                 Mould.Digits
         );
         SourceDetail detail = itemMould.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
     }
 
     @Test
@@ -321,7 +321,7 @@ public class MouldTests {
         );
         Mould mould = Mould.join(Mould.theMould("、"), itemMould);
         SourceDetail detail = mould.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(
                 JSON.toJSONString(Arrays.asList("YCLED720/720", "YCLED720/520", "YCLED720", "YCLED55", "YCLED720L", "YCLED5L")),
                 detail.getClay().toJsonString()
@@ -339,7 +339,7 @@ public class MouldTests {
                 )
         );
         SourceDetail detail = mould.fill(sourceStr);
-        Assertions.assertTrue(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
         Assertions.assertEquals(
                 Arrays.asList("YCLED720/720", "YCLED*720/520", "YCLE D720"),
                 detail.getClay().value(List.class)
@@ -354,40 +354,40 @@ public class MouldTests {
                 Mould.maybe(Mould.theMould("/"), Mould.theMould(" "), Mould.theMould("*"))
         );
         SourceDetail detail = mould.fill(sourceStr);
-        Assertions.assertFalse(detail.isMatch());
+        Assertions.assertFalse(detail.isFinish());
     }
 
     @Test
     public void testInterweave3() {
-        String sourceStr = "YCLED720720-";
+        String sourceStr = "YCLED720720 ";
         Mould mould = Mould.interweave(
                 Mould.repeat(Mould.maybe(Mould.Digit, Mould.Letter)),
                 Mould.maybe(Mould.theMould("/"), Mould.theMould(" "), Mould.theMould("*"))
         );
         SourceDetail detail = mould.fill(sourceStr);
-        Assertions.assertFalse(detail.isMatch());
+        Assertions.assertFalse(detail.isFinish());
     }
 
     @Test
     public void testInterweave4() {
-        String sourceStr = "-YCLED720720";
+        String sourceStr = "*YCLED720720";
         Mould mould = Mould.interweave(
                 Mould.repeat(Mould.maybe(Mould.Digit, Mould.Letter)),
                 Mould.maybe(Mould.theMould("/"), Mould.theMould(" "), Mould.theMould("*"))
         );
         SourceDetail detail = mould.fill(sourceStr);
-        Assertions.assertFalse(detail.isMatch());
+        Assertions.assertFalse(detail.isFinish());
     }
 
     @Test
-    public void testInterweave4() {
+    public void testInterweave5() {
         String sourceStr = "YCLE/D72  0720";
         Mould mould = Mould.interweave(
                 Mould.repeat(Mould.maybe(Mould.Digit, Mould.Letter)),
                 Mould.maybe(Mould.theMould("/"), Mould.theMould(" "), Mould.theMould("*"))
         );
         SourceDetail detail = mould.fill(sourceStr);
-        Assertions.assertFalse(detail.isMatch());
+        Assertions.assertTrue(detail.isFinish());
     }
 
 }
